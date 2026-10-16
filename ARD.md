@@ -9,10 +9,15 @@ ARD patches, built into the image `ghcr.io/arcticrd/inventree`.
   patches on top. Each patch is its own commit.
 - Tag a commit on that branch `<version>-ard.<n>` (for example `1.5.7-ard.1`) to build
   and push `ghcr.io/arcticrd/inventree:<tag>` (`.github/workflows/ard-image.yaml`).
+- The image is private. The work VPS pulls it with a read-only token
+  (`docker login ghcr.io` with a classic token that has only `read:packages`, then
+  `docker logout`). Live never talks to the registry: the image is copied from the
+  VPS with `docker save ghcr.io/arcticrd/inventree:<tag> | gzip | ssh <live> 'gunzip | docker load'`.
 - Staging and live use that image in place of `inventree/inventree` (an `image:` line
   for `inventree-server` and `inventree-worker` in `docker-compose.override.yml`).
-  After switching images, run `docker compose run --rm inventree-server invoke static`
-  so the proxy serves the image's web UI.
+  After switching images, run `invoke plugins` in the worker and restart it, then
+  `docker compose exec inventree-server invoke static` so the proxy serves the
+  image's web UI.
 
 ## Patches
 
