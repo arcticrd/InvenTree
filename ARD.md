@@ -17,7 +17,9 @@ ARD patches, built into the image `ghcr.io/arcticrd/inventree`.
   for `inventree-server` and `inventree-worker` in `docker-compose.override.yml`).
   After switching images, run `invoke plugins` in the worker and restart it, then
   `docker compose exec inventree-server invoke static` so the proxy serves the
-  image's web UI.
+  image's web UI. `invoke static` empties the static folder, so on live copy the ARD
+  logo back afterwards: `sudo cp -p inventree-data/branding/ard-logo.svg
+  inventree-data/static/branding/` (`INVENTREE_CUSTOM_LOGO=branding/ard-logo.svg`).
 
 ## Patches
 
