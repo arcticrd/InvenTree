@@ -1,0 +1,61 @@
+# ARD: builds the ARD InvenTree image (an upstream release plus the ARD
+# patches on an ard/* branch) and pushes it to ghcr.io/arcticrd/inventree.
+#
+# Release a build by tagging the patched commit <upstream version>-ard.<n>,
+# for example 1.5.7-ard.1. Run it by hand to check a branch without a tag.
+
+name: ARD image
+
+on:
+  push:
+    tags:
+      - "*-ard.*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Commit information
+        run: |
+          echo "git_commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "git_commit_date=$(git show -s --format=%ci)" >> $GITHUB_ENV
+      - name: Image tag
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            echo "image_tag=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          else
+            echo "image_tag=build-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          fi
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@371161bbe7024a29a25c5e19bfcbc0804fe9ad2c # v4.5.2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./contrib/container/Dockerfile
+          target: production
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/arcticrd/inventree:${{ env.image_tag }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/arcticrd/InvenTree
+            org.opencontainers.image.description=InvenTree with ARD patches
+          build-args: |
+            commit_hash=${{ env.git_commit_hash }}
+            commit_date=${{ env.git_commit_date }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
