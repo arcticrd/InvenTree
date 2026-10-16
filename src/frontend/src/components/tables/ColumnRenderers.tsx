@@ -136,7 +136,8 @@ export function RevisionColumn(props: TableColumnProps): TableColumn {
     switchable: true,
     title: t`Revision`,
     copyable: true,
-    defaultVisible: false,
+    // ARD: part revisions are versions, so show them by default
+    defaultVisible: true,
     ...props
   };
 }

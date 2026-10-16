@@ -85,7 +85,21 @@ export const useStoredTableState = create<StoredTableStateProps>()(
       }
     }),
     {
-      name: 'inventree-table-state'
+      name: 'inventree-table-state',
+      // ARD: version 1 shows the Revision column again in every table where
+      // it was hidden by the old default, once per browser.
+      version: 1,
+      migrate: (persisted: any, version: number) => {
+        if (version < 1 && persisted?.hiddenColumns) {
+          const hidden: Record<string, string[]> = persisted.hiddenColumns;
+          for (const key of Object.keys(hidden)) {
+            hidden[key] = (hidden[key] ?? []).filter(
+              (column: string) => column !== 'part_detail.revision'
+            );
+          }
+        }
+        return persisted;
+      }
     }
   )
 );

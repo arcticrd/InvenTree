@@ -69,7 +69,8 @@ function stockItemTableColumns({
       accessor: 'part_detail.revision',
       title: t`Revision`,
       sortable: true,
-      defaultVisible: false
+      // ARD: part revisions are versions, so show them by default
+      defaultVisible: true
     },
     DescriptionColumn({
       accessor: 'part_detail.description'

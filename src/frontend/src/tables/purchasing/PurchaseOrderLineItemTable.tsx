@@ -155,6 +155,13 @@ export function PurchaseOrderLineItemTable({
         sortable: true,
         ordering: 'IPN'
       },
+      // ARD: the version of the part being ordered
+      {
+        accessor: 'part_detail.revision',
+        title: t`Revision`,
+        sortable: false,
+        switchable: true
+      },
       DescriptionColumn({
         accessor: 'part_detail.description'
       }),
