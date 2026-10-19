@@ -496,6 +496,7 @@ The logo and custom messages can be changed/set:
 {{ configsetting("INVENTREE_CUSTOM_SPLASH") }} Path to custom splash screen in the static files directory |
 {{ configsetting("INVENTREE_SITE_HEADER") }} Custom header text for the django admin page |
 {{ configsetting("INVENTREE_CUSTOMIZE") }} JSON object containing custom messages for the login page, navbar, and Django admin site |
+{{ configsetting("INVENTREE_DEFAULT_THEME") }} JSON object with the web UI theme given to new users |
 
 The INVENTREE_CUSTOMIZE environment variable must contain a json object with the keys from the table above and
 the wanted values. Example:
@@ -505,6 +506,24 @@ INVENTREE_CUSTOMIZE={"login_message":"Hello World"}
 ```
 
 This example sets a login message. Take care of the double quotes.
+
+### Default Theme
+
+By default, new users get the built-in web UI theme. To give every new user a different theme, set `INVENTREE_DEFAULT_THEME` (or `default_theme` under `customize` in the configuration file) to a theme object with all of these keys:
+
+| Key | Description |
+| --- | --- |
+| `primaryColor` | Name of a [Mantine color](https://mantine.dev/theming/colors/#default-colors), e.g. `orange` |
+| `whiteColor` | Color used for white, e.g. `#ffffff` |
+| `blackColor` | Color used for black, e.g. `#000000` |
+| `radius` | Corner radius: `xs`, `sm`, `md`, `lg` or `xl` |
+| `loader` | Loader style: `oval`, `bars` or `dots` |
+
+```
+INVENTREE_DEFAULT_THEME={"primaryColor":"orange","whiteColor":"#ffffff","blackColor":"#0e0e0e","radius":"md","loader":"oval"}
+```
+
+The theme is stored in the user's profile when the user is created, and the web UI applies it at the user's first login. Users can change it afterwards in their account settings. Existing users keep their theme.
 
 If you want to remove the InvenTree branding as far as possible from your end-user also check the [global server settings](../settings/global.md#server-settings).
 

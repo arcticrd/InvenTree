@@ -235,6 +235,12 @@ ldap:
 #   disable_theme_storage: true
 #   logo: img/custom_logo.png
 #   splash: img/custom_splash.jpg
+#   default_theme:  # Web UI theme for new users (all five keys are required)
+#     primaryColor: orange  # A Mantine color name
+#     whiteColor: '#ffffff'
+#     blackColor: '#0e0e0e'
+#     radius: md
+#     loader: oval
 
 # Override global settings
 #global_settings:

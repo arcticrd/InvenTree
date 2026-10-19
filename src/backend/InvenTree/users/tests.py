@@ -1,8 +1,8 @@
 """Unit tests for the 'users' app."""
 
 from django.apps import apps
-from django.contrib.auth.models import Group
-from django.test import TestCase
+from django.contrib.auth.models import Group, User
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from common.settings import set_global_setting
@@ -500,3 +500,44 @@ class UserProfileTest(InvenTreeAPITestCase):
         # Ensure primary_group is set to None
         profile.refresh_from_db()
         self.assertIsNone(profile.primary_group)
+
+    def test_default_theme(self):
+        """Test that new users get the configured default theme."""
+        theme = {
+            'primaryColor': 'orange',
+            'whiteColor': '#ffffff',
+            'blackColor': '#0e0e0e',
+            'radius': 'md',
+            'loader': 'oval',
+        }
+
+        with override_settings(DEFAULT_THEME=theme):
+            user = User.objects.create_user(username='themed', password='123')
+
+        self.assertEqual(user.profile.theme, theme)
+
+        # The new profile holds a copy of the setting
+        user.profile.theme['primaryColor'] = 'blue'
+        user.profile.save()
+        self.assertEqual(theme['primaryColor'], 'orange')
+
+        # Existing users keep their theme, even when saved again
+        with override_settings(DEFAULT_THEME=theme):
+            self.user.save()
+
+        self.user.profile.refresh_from_db()
+        self.assertIsNone(self.user.profile.theme)
+
+        # No default theme configured (the setting is an empty dict when unset)
+        for idx, value in enumerate([{}, None]):
+            with override_settings(DEFAULT_THEME=value):
+                user = User.objects.create_user(username=f'plain-{idx}')
+            self.assertIsNone(user.profile.theme)
+
+        # A value that is not a JSON object is ignored with a warning
+        with (
+            override_settings(DEFAULT_THEME='orange'),
+            self.assertLogs('inventree', level='WARNING'),
+        ):
+            user = User.objects.create_user(username='badtheme')
+        self.assertIsNone(user.profile.theme)

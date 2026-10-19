@@ -1140,6 +1140,14 @@ CUSTOMIZE = get_setting(
     'INVENTREE_CUSTOMIZE', 'customize', default_value=None, typecast=dict
 )
 
+# Web UI theme given to new users (a JSON object, as stored in UserProfile.theme)
+DEFAULT_THEME = get_setting(
+    'INVENTREE_DEFAULT_THEME',
+    'customize.default_theme',
+    default_value=None,
+    typecast=dict,
+)
+
 if DEBUG:
     logger.info('InvenTree running with DEBUG enabled')
 

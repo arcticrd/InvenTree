@@ -1,5 +1,6 @@
 """Database model definitions for the 'users' app."""
 
+import copy
 import datetime
 
 from django.conf import settings
@@ -570,6 +571,27 @@ class UserProfile(InvenTree.models.MetadataMixin):
         super().save(*args, **kwargs)
 
 
+def get_default_theme():
+    """Return a copy of the configured default web UI theme for new users.
+
+    Returns None (so the web UI uses its built-in theme) if no default theme
+    is configured, or if the configured value is not a JSON object.
+    """
+    theme = getattr(settings, 'DEFAULT_THEME', None)
+
+    if not theme:
+        return None
+
+    if not isinstance(theme, dict):
+        logger.warning(
+            'INVENTREE_DEFAULT_THEME must be a JSON object, not %s - ignoring it',
+            type(theme).__name__,
+        )
+        return None
+
+    return copy.deepcopy(theme)
+
+
 # Signal to create or update user profile when user is saved
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
@@ -579,7 +601,7 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
         return
 
     if created:
-        UserProfile.objects.create(user=instance)
+        UserProfile.objects.create(user=instance, theme=get_default_theme())
     instance.profile.save()
 
 
