@@ -26,6 +26,7 @@ ARD patches, built into the image `ghcr.io/arcticrd/inventree`.
 | Patch | Why |
 | --- | --- |
 | Revision column shown by default (sales order lines and allocations, purchase order lines, build orders and build lines, stock), and shown once again in browsers that hid it under the old default | ARD part revisions are versions; people must see which version they sell, buy, build or stock |
+| Default web UI theme for new users: `INVENTREE_DEFAULT_THEME` (or `customize.default_theme`) holds a theme JSON object that is stored in each new user's profile. Unset, nothing changes. No migration; written to be offered upstream | New users get the ARD orange theme instead of the stock blue one, without copying it by hand. Live and staging set `INVENTREE_DEFAULT_THEME='{"primaryColor":"orange","whiteColor":"#ffffff","blackColor":"#0e0e0e","radius":"md","loader":"oval"}'` in `.env` |
 
 ## Upgrading to a new InvenTree release
 
