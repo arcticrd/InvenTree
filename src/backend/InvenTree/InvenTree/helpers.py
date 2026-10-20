@@ -677,74 +677,41 @@ def extract_serial_numbers(
         else:
             return serials
 
+    def walk_range(a, b, remaining):
+        """Step from serial a towards serial b; return the values and whether b was reached."""
+        group_items = []
+
+        count = 0
+
+        a_next = a
+
+        while a_next is not None and a_next not in group_items:
+            group_items.append(a_next)
+            count += 1
+
+            # Progress to the 'next' sequential value
+            a_next = str(increment_serial_number(a_next, part=part))
+
+            if a_next == b:
+                # Successfully got to the end of the range
+                group_items.append(b)
+                return group_items, True
+
+            elif count > remaining:
+                # More than the allowed number of items
+                break
+
+        return group_items, False
+
     for group in groups:
         # Calculate the "remaining" quantity of serial numbers
         remaining = expected_quantity - len(serials)
 
         group = group.strip()
 
-        if '-' in group:
-            """Hyphen indicates a range of values:
-            e.g. 10-20
-            """
-            items = group.split('-')
-
-            if len(items) == 2:
-                a = items[0]
-                b = items[1]
-
-                if a == b:
-                    # Invalid group
-                    add_error(_(f'Invalid group: {group}'))
-                    continue
-
-                group_items = []
-
-                count = 0
-
-                a_next = a
-
-                while a_next is not None and a_next not in group_items:
-                    group_items.append(a_next)
-                    count += 1
-
-                    # Progress to the 'next' sequential value
-                    a_next = str(increment_serial_number(a_next))
-
-                    if a_next == b:
-                        # Successfully got to the end of the range
-                        group_items.append(b)
-                        break
-
-                    elif count > remaining:
-                        # More than the allowed number of items
-                        break
-
-                    elif a_next is None:
-                        break
-
-                if len(group_items) > remaining:
-                    add_error(
-                        _(
-                            f'Group range {group} exceeds allowed quantity ({expected_quantity})'
-                        )
-                    )
-                elif (
-                    len(group_items) > 0
-                    and group_items[0] == a
-                    and group_items[-1] == b
-                ):
-                    # In this case, the range extraction looks like it has worked
-                    for item in group_items:
-                        add_serial(item)
-                else:
-                    add_error(_(f'Invalid group: {group}'))
-
-            else:
-                # In the case of a different number of hyphens, simply add the entire group
-                add_serial(group)
-
-        elif '+' in group:
+        # ARD: '+' is checked before '-', so a start value that contains a hyphen
+        # (e.g. ICE-00003+2) is a sequence, not a range.
+        if '+' in group:
             """Plus character (+) indicates either:
             - <start>+ - Expected number of serials, beginning at the specified 'start' character
             - <start>+<num> - Specified number of serials, beginning at the specified 'start' character
@@ -775,7 +742,7 @@ def extract_serial_numbers(
                 and counter < sequence_count
             ):
                 sequence_items.append(value)
-                value = increment_serial_number(value)
+                value = increment_serial_number(value, part=part)
                 counter += 1
 
             if len(sequence_items) == sequence_count:
@@ -783,6 +750,83 @@ def extract_serial_numbers(
                     add_serial(item)
             else:
                 add_error(_(f'Invalid group: {group}'))
+
+        elif '-' in group:
+            """Hyphen indicates a range of values:
+            e.g. 10-20
+            """
+            items = group.split('-')
+
+            if len(items) == 2:
+                a = items[0]
+                b = items[1]
+
+                if a == b:
+                    # Invalid group
+                    add_error(_(f'Invalid group: {group}'))
+                    continue
+
+                group_items, _reached = walk_range(a, b, remaining)
+
+                if len(group_items) > remaining:
+                    add_error(
+                        _(
+                            f'Group range {group} exceeds allowed quantity ({expected_quantity})'
+                        )
+                    )
+                elif (
+                    len(group_items) > 0
+                    and group_items[0] == a
+                    and group_items[-1] == b
+                ):
+                    # In this case, the range extraction looks like it has worked
+                    for item in group_items:
+                        add_serial(item)
+                else:
+                    add_error(_(f'Invalid group: {group}'))
+
+            else:
+                # ARD: more than one hyphen may be a range between two serials that
+                # contain hyphens themselves (e.g. ICE-00003-ICE-00005). Try each
+                # hyphen where both sides are a shared prefix plus digits; the range
+                # is the first split that steps from one side to the other.
+                found = None
+                too_long = False
+
+                for idx, char in enumerate(group):
+                    if char != '-':
+                        continue
+
+                    a = group[:idx].strip()
+                    b = group[idx + 1 :].strip()
+                    a_match = re.match(r'^(.*?)(\d+)$', a)
+                    b_match = re.match(r'^(.*?)(\d+)$', b)
+
+                    if a == b or not a_match or not b_match:
+                        continue
+                    if a_match.group(1) != b_match.group(1):
+                        continue
+
+                    group_items, reached = walk_range(a, b, remaining)
+
+                    if reached:
+                        found = group_items
+                        break
+                    if len(group_items) > remaining:
+                        too_long = True
+
+                if found is not None and len(found) <= remaining:
+                    for item in found:
+                        add_serial(item)
+                elif found is not None or too_long:
+                    add_error(
+                        _(
+                            f'Group range {group} exceeds allowed quantity ({expected_quantity})'
+                        )
+                    )
+                else:
+                    # In the case of a different number of hyphens, simply add the entire group
+                    add_serial(group)
 
         else:
             # At this point, we assume that the 'group' is just a single serial value

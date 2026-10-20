@@ -1111,6 +1111,28 @@ class TestSerialNumberExtraction(TestCase):
         for v in range(91, 101):
             self.assertIn(str(v), sn)
 
+    def test_hyphenated_serials(self):
+        """Serials that contain a hyphen (e.g. ICE-00003) work with + and with ranges."""
+        e = helpers.extract_serial_numbers
+
+        three = ['ICE-00003', 'ICE-00004', 'ICE-00005']
+        self.assertEqual(e('ICE-00003+', 3, 1), three)
+        self.assertEqual(e('ICE-00003+2', 3, 1), three)
+        self.assertEqual(e('ICE-00003-ICE-00005', 3, 1), three)
+        self.assertEqual(
+            e('ICE-00003-ICE-00004, PLT-00010+1', 4, 1),
+            ['ICE-00003', 'ICE-00004', 'PLT-00010', 'PLT-00011'],
+        )
+
+        # A range longer than the quantity is still refused
+        with self.assertRaises(ValidationError) as exc:
+            e('ICE-00003-ICE-00050', 5, 1)
+        self.assertIn('exceeds allowed quantity', str(exc.exception))
+
+        # Hyphenated serials that aren't a range stay single serials
+        self.assertEqual(e('1, AB-12-34, 3+', 4, 1), ['1', 'AB-12-34', '3', '4'])
+        self.assertEqual(e('1, 2, TG-4SR-92, 4+', 5, 1), ['1', '2', 'TG-4SR-92', '4', '5'])
+
 
 class TestVersionNumber(TestCase):
     """Unit tests for version number functions."""
